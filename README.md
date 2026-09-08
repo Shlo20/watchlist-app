@@ -223,4 +223,4 @@ Not built. Listed in the order I would actually do them.
 
 ## Status
 
-**Actively developed. Deployed and in intermittent real use.** The source repository is private and will stay private; this repository is a written account of the work. I am happy to walk through the code or any of the decisions above in an interview.
+**Actively developed. Deployed and in intermittent real use.**
