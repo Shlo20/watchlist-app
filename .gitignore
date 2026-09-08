@@ -1,0 +1,90 @@
+# This repo should contain a README and nothing else.
+# Everything below is defensive: if a stray file ever lands here, it must not
+# be the one that leaks.
+
+# ── Environment and secrets ─────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.env
+.envrc
+env/
+venv/
+.venv/
+
+# Credential and key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der
+id_rsa*
+id_ed25519*
+*.ppk
+.netrc
+.npmrc
+.pypirc
+credentials
+credentials.*
+secrets.*
+*secret*
+*credential*
+*password*
+*token*
+service-account*.json
+gha-creds-*.json
+.aws/
+.ssh/
+.gnupg/
+
+# Platform / tooling local config that can hold tokens
+.vercel
+.render
+.supabase
+.firebase
+.terraform/
+*.tfstate
+*.tfstate.*
+.claude/
+CLAUDE.md
+
+# ── Data — never publish real business data ─────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+*.csv
+*.xlsx
+*.xls
+backup/
+backups/
+dumps/
+
+# ── Source code — this repo is documentation only ───────────────────────────
+# Belt and braces: the private source must never be committed here by accident.
+*.py
+*.ts
+*.tsx
+*.js
+*.jsx
+node_modules/
+__pycache__/
+*.py[cod]
+dist/
+build/
+
+# ── OS and editor noise ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.log
