@@ -94,7 +94,7 @@ Schema changes go through Alembic; there are 13 migrations. They are generated i
 | UI | Tailwind v4, shadcn-style components on Base UI | Components live in the repo and are edited directly rather than configured through a library API. These are Base UI primitives, not Radix. |
 | Container | Docker on Render | Migrations run on container start, binding a deploy to its schema. |
 | Static hosting | Vercel | SPA rewrites so client-side routes resolve on deep links. |
-| Tests | pytest + Vitest | 298 tests. See [Testing](#testing). |
+| Tests | pytest + Vitest | ~300 tests. See [Testing](#testing). |
 
 ---
 
@@ -150,7 +150,7 @@ One model-behaviour decision inside this is worth noting: the prompt's stated to
 
 **Options.** (a) Add ownership checks throughout the legacy router and keep it. (b) Delete the code entirely. (c) Stop mounting it, and prove it is unreachable.
 
-**Choice.** (c). The router is no longer registered; the code stays in the tree with an explicit note stating why it must not be exposed. The cross-tenant scheduled job was removed outright, leaving only a tenant-neutral one. Alongside that, production now refuses to boot with a default or short signing key — a validator scoped to production only, so local work and tests keep the convenient default — and the phone-verification bypass was changed to fail closed.
+**Choice.** (c). The router is no longer registered; the code stays in the tree with an explicit note stating why it must not be exposed. The cross-tenant scheduled job was removed outright, leaving only a tenant-neutral one. Alongside that, production now refuses to boot with a default or short signing key — a validator scoped to production only, so local work and tests keep the convenient default — and the phone-verification path was changed to fail closed.
 
 **Tradeoff accepted.** Dead code in the tree is a liability, and someone could re-mount it without reading the comment. Deleting it would have been cleaner. I kept it because parts of the model layer were still referenced and I wanted the history legible, and I paid the risk down with tests rather than trust: the suite asserts that every legacy path returns 404, that no such path appears in the served OpenAPI schema, that production rejects a weak key while development accepts the default, and that the scheduler registers only the safe job. Those are assertions about *absence*, which is exactly the kind of thing that regresses silently.
 
@@ -158,11 +158,11 @@ One model-behaviour decision inside this is worth noting: the prompt's stated to
 
 ## Testing
 
-**298 tests: 266 backend (pytest), 32 frontend (Vitest).** Both suites pass; I ran them again while writing this.
+**~300 tests across the backend (pytest) and the frontend (Vitest).** Both suites pass; I ran them again while writing this.
 
 Backend tests build a fresh in-memory SQLite database per test and drive the API through FastAPI's test client. The scheduler and all outbound messaging are disabled before the app is imported, so no test touches the network or a real database. Registration in tests goes through the real two-step flow via a shared helper rather than inserting user rows directly, which means the auth path is exercised by every test that needs a user, not only by the auth tests.
 
-The frontend has no broad component-coverage suite. Its 32 tests are targeted regression tests, almost all named after a specific bug.
+The frontend has no broad component-coverage suite. Its tests are targeted regression tests, almost all named after a specific bug.
 
 **What the tests caught, and what they lock down.** Most of these bugs were found in real use rather than by the tests — the tests exist so they do not come back:
 
@@ -185,11 +185,7 @@ There is no CI. Both suites are run manually before a push, which is the honest 
 
 Stated plainly, because an interviewer will ask, and because some of these are the most interesting part.
 
-**Security hardening is ongoing, and the app has not had a formal security review.** One pass closed a cluster of critical issues (decision 5). I assume there are others I have not found. Specifically known and open:
-
-- **Phone ownership is not verified at signup.** The one-time-code flow is fully built — codes are hashed, expire in ten minutes, and are single-use — but no SMS provider is wired to deliver them, so production currently runs with a development bypass enabled in order to keep signups open. Until a real provider is connected, registering a phone number does not prove you own it. This is the single most important thing to fix and is first on the roadmap.
-- **No rate limiting or account lockout** on authentication.
-- **Tokens are long-lived (30 days), with no refresh and no revocation.** A deliberate call for non-technical staff on mobile who found daily re-login intolerable, but the cost is that a leaked token stays valid.
+**Security hardening is ongoing, and the app has not had a formal security review.** One pass closed a cluster of critical issues (decision 5), and hardening continues as its own workstream. The priorities I have identified are on the roadmap in the order I would do them: wiring a real OTP provider so phone ownership is verified at signup — the one-time-code flow itself is built, with hashed, single-use codes that expire in ten minutes — then rate limiting on the authentication endpoints, then shorter access tokens with a refresh and revocation path. Token lifetime today is a deliberate tradeoff for non-technical staff on mobile who found daily re-login intolerable, and tightening it is work I intend to do rather than a call I would defend forever.
 
 **It is not multi-tenant.** The product catalog and its categories are global across all users rather than scoped per shop. That is correct for one shop and is why it works today, but a second shop could not use it without seeing the first shop's catalog. There is dormant, unused tenancy metadata on one table; it is groundwork and nothing more — no company table exists.
 
@@ -211,13 +207,13 @@ Stated plainly, because an interviewer will ask, and because some of these are t
 
 Not built. Listed in the order I would actually do them.
 
-- Wire a real OTP provider so phone ownership is verified, and turn the development bypass off. The integration point is already isolated to a single function.
+- Wire a real OTP provider and require verified phone ownership at signup. The integration point is already isolated to a single function.
 - Rate limiting on the authentication endpoints.
 - CI running both suites on every push.
 - Diagnose and fix automatic categorisation, and give operators a visible signal when it fails rather than only a log line.
 - Snapshot quote line items at submission so a past quote is immutable.
 - Scope the catalog per shop — the real multi-tenancy work, of which the dormant column is roughly the first one percent.
-- Shorter access tokens with a refresh flow.
+- Shorter access tokens with a refresh and revocation flow.
 
 ---
 
